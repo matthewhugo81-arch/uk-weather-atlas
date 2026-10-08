@@ -2,7 +2,9 @@
 
 Actual observations for the UK, Republic of Ireland and nearby seas, from OGIMET METAR, SYNOP, SHIP and BUOY reports. Includes an interactive map, observed-field menus, wind arrows, dark map mode and Top 5 / Top 10 station rankings.
 
-Live site: https://uk-weather-atlas.matthugo81.chatgpt.site/
+GitHub website: https://matthewhugo81-arch.github.io/uk-weather-atlas/
+
+Original site and observation backend: https://uk-weather-atlas.matthugo81.chatgpt.site/
 
 ## Run locally
 
@@ -34,7 +36,9 @@ Rankings cover reporting UK/Ireland land stations, not every town. They follow t
 
 ## Hosting
 
-GitHub stores the source. The current live site remains hosted by Sites; this repository does not enable GitHub Pages or automatic deployment. The site requires a Worker/backend for OGIMET access, so static GitHub Pages alone will not run the observation API. Build output can be deployed to a compatible Cloudflare Worker after configuring that hosting separately. `.openai/hosting.json` identifies the existing Sites project and contains no credentials.
+GitHub Pages serves the map from `main` → `/docs`. Run `npm run build:pages` after changing browser assets and commit the updated `docs/` files; pushes to the configured source automatically publish them. The Pages build keeps relative asset URLs, excludes the Worker and hosting metadata, and points observation requests to the original Sites backend. There are no credentials in the browser build.
+
+The observation backend remains hosted by Sites and must be public for shared visitors. It permits browser API access from `https://matthewhugo81-arch.github.io` without credentials. GitHub Pages cannot run the OGIMET Worker itself. `.openai/hosting.json` identifies the existing Sites project and contains no credentials. Backend changes still require a separate Sites deployment.
 
 ## Data
 

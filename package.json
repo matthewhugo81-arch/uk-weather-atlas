@@ -1,1 +1,1 @@
-{"name":"uk-weather-atlas","private":true,"type":"module","scripts":{"build":"node scripts/build.mjs","test":"node --test test/*.test.mjs","dev":"node scripts/preview.mjs"}}
+{"name":"uk-weather-atlas","private":true,"type":"module","scripts":{"build":"node scripts/build.mjs","build:pages":"node scripts/build-pages.mjs","test":"node --test test/*.test.mjs","dev":"node scripts/preview.mjs"}}

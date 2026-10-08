@@ -30,7 +30,9 @@ async function observationData(origin,ctx){
 export default {async fetch(request,env,ctx={waitUntil:()=>{}}){
  const url=new URL(request.url);if(!['GET','HEAD'].includes(request.method))return new Response('Method not allowed',{status:405});
  if(url.pathname==='/api/observations'){
-  try{const data=await observationData(url.origin,ctx);return new Response(request.method==='HEAD'?null:JSON.stringify(data),{status:data.success?200:502,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});}catch(e){console.error('Observation pipeline failed:',e.message);return new Response(JSON.stringify({error:'Observations are temporarily unavailable. Please try again shortly.'}),{status:502,headers:{'Content-Type':'application/json','Cache-Control':'no-store'}});}
+  const headers={'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Vary':'Origin'};
+  if(request.headers.get('Origin')==='https://matthewhugo81-arch.github.io')headers['Access-Control-Allow-Origin']='https://matthewhugo81-arch.github.io';
+  try{const data=await observationData(url.origin,ctx);return new Response(request.method==='HEAD'?null:JSON.stringify(data),{status:data.success?200:502,headers});}catch(e){console.error('Observation pipeline failed:',e.message);return new Response(JSON.stringify({error:'Observations are temporarily unavailable. Please try again shortly.'}),{status:502,headers});}
  }
  const path=url.pathname==='/'?'/index.html':url.pathname,asset=ASSETS[path];if(!asset)return new Response('Not found',{status:404});
  const body=asset.base64?Uint8Array.from(atob(asset.data),c=>c.charCodeAt(0)):asset.data;

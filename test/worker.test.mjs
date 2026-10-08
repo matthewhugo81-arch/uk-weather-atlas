@@ -8,6 +8,15 @@ async function freshWorker(){return (await import(`../dist/server/index.js?test=
 function installSources(){let calls=0;globalThis.fetch=async url=>{calls++;if(String(url).includes('display_stations'))return new Response('Unavailable',{status:503});const d=new Date(),fields=[d.getUTCFullYear(),d.getUTCMonth()+1,d.getUTCDate(),d.getUTCHours(),d.getUTCMinutes()].map((v,i)=>String(v).padStart(i===0?4:2,'0'));const raw=String(url).includes('getsynop')?`03772,${fields.join(',')},AAXX ${fields[2]}${fields[3]}4 03772 25983 03106 10104 20073 30115 40145=`:`EGLL,${fields.join(',')},METAR EGLL ${fields[2]}${fields[3]}${fields[4]}Z 31007KT 9999 NCD 11/06 Q1015=`;return new Response(raw);};return ()=>calls;}
 function installCache(open){Object.defineProperty(globalThis,'caches',{configurable:true,value:{get default(){throw Error('caches.default is disabled in dispatch namespace');},open}});}
 test.after(()=>{globalThis.fetch=originalFetch;if(originalCaches)Object.defineProperty(globalThis,'caches',originalCaches);else delete globalThis.caches;});
+test('public observation API allows the GitHub map origin without granting credentials',async()=>{
+ installCache(async()=>null);installSources();const worker=await freshWorker();
+ for(const origin of ['https://matthewhugo81-arch.github.io','https://other.example']){
+  const response=await worker.fetch(new Request('https://weather.test/api/observations',{headers:{Origin:origin}}));
+  assert.equal(response.status,200);assert.equal(response.headers.get('Vary'),'Origin');
+  assert.equal(response.headers.get('Access-Control-Allow-Origin'),origin==='https://matthewhugo81-arch.github.io'?origin:null);
+  assert.equal(response.headers.get('Access-Control-Allow-Credentials'),null);
+ }
+});
 test('dispatch cache restrictions do not stop observations; named cache survives new worker',async()=>{
  const entries=new Map(),pending=[];let opened='';const calls=installSources();
  installCache(async name=>{opened=name;return {match:async key=>entries.get(key.url)?.clone(),put:async(key,response)=>entries.set(key.url,response.clone())};});

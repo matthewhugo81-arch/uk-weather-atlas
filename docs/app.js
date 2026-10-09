@@ -27,7 +27,7 @@ let data=null,variable='temperature',network='all',maxAge=120,period=1,selectedI
 const map=L.map('map',{zoomControl:false,minZoom:3.5,maxZoom:13,zoomSnap:.25,preferCanvas:false});
 L.control.zoom({position:'bottomright'}).addTo(map);const markers=L.layerGroup().addTo(map);map.attributionControl.addAttribution('Reports: <a href="https://www.ogimet.com/">OGIMET</a> · Geography: <a href="https://www.naturalearthdata.com/">Natural Earth</a>');
 function notice(text){$('notice').textContent=text;$('notice').hidden=!text;}
-function fitUK(){map.stop();map.invalidateSize();map.fitBounds([[47.5,-17],[62.5,6]],{paddingTopLeft:[20,105],paddingBottomRight:[20,165],animate:false});}
+function fitUK(){map.stop();map.invalidateSize();const mobile=matchMedia('(max-width:680px)').matches;map.fitBounds([[47.5,-17],[62.5,6]],{paddingTopLeft:mobile?[12,12]:[20,105],paddingBottomRight:mobile?[12,24]:[20,165],animate:false});}
 const utc=t=>new Intl.DateTimeFormat('en-GB',{timeZone:'UTC',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}).format(new Date(t*1000))+' UTC';
 const timeOnly=t=>new Intl.DateTimeFormat('en-GB',{timeZone:'UTC',hour:'2-digit',minute:'2-digit'}).format(new Date(t*1000));
 const age=t=>Math.max(0,Math.floor((Date.now()/1000-t)/60));
@@ -84,4 +84,5 @@ function geographyStyle(f){const focus=f.properties.uk||f.properties.name==='Ire
 function applyMapTheme(){document.querySelector('.map-shell').classList.toggle('dark-map',$('dark-map').checked);geographyLayer?.setStyle(geographyStyle);try{localStorage.setItem('weather-map-theme',$('dark-map').checked?'dark':'light');}catch{}}
 try{$('dark-map').checked=localStorage.getItem('weather-map-theme')==='dark';}catch{}
 $('dark-map').onchange=applyMapTheme;applyMapTheme();
+const phoneLayout=matchMedia('(max-width:680px)');function syncLegendLayout(){document.querySelector('.legend-details').open=!phoneLayout.matches;}phoneLayout.addEventListener('change',syncLegendLayout);syncLegendLayout();
 async function init(){try{const r=await fetch('geography.json');if(!r.ok)throw Error();geographyLayer=L.geoJSON(await r.json(),{pane:'tilePane',style:geographyStyle,interactive:false}).addTo(map);}catch{notice('The base map could not load. Station observations are still available.');}fitUK();legend();await refresh();registerTools();}init();

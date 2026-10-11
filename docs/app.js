@@ -20,6 +20,8 @@ const V={
  precipitation:{label:'Precipitation accumulation',unit:'mm',min:0,max:10,dec:1,colours:blue,note:'Measured total water equivalent over the selected period, ending at its report time. Trace is preserved.'}
 };
 Object.assign(V,ObservationVariables);
+// Keep absolute temperature colours identical when switching observations.
+for(const v of Object.values(V))if(v.unit==='°C'){v.min=-10;v.max=30;v.colours=thermal;}
 const baseGroups={temperature:'Temperature',dewpoint:'Temperature',humidity:'Temperature',wind:'Wind',direction:'Wind',gust:'Wind',pressure_msl:'Pressure',surface_pressure:'Pressure',qnh:'Pressure',weather:'Weather & sky',cloud:'Cloud',metar_cloud:'Cloud',visibility:'Visibility',sea_temperature:'Marine',precipitation:'Precipitation'};
 for(const [key,group]of Object.entries(baseGroups))V[key].group=group;
 function populateVariables(){const current=variable,groups=new Map();for(const [key,v]of Object.entries(V)){const present=!data||data.stations.some(s=>key==='precipitation'?Object.keys(s.fields).some(k=>k.startsWith('precip_')):s.fields[key]);if(!present&&key!==current)continue;if(!groups.has(v.group)){const group=document.createElement('optgroup');group.label=v.group;groups.set(v.group,group);}const option=document.createElement('option');option.value=key;option.textContent=v.label;groups.get(v.group).append(option);}const order=['Temperature','Wind','Pressure','Weather & sky','Cloud','Visibility','Ground & snow','Sunshine & radiation','Marine','Precipitation','Additional observations'];$('variable').replaceChildren(...order.filter(g=>groups.has(g)).map(g=>groups.get(g)));$('variable').value=current;}

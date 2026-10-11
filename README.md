@@ -30,6 +30,8 @@ Open http://127.0.0.1:4173/. The preview provides `/api/observations`; opening `
 
 ## Rankings
 
+Opening Station Rankings filters the map to exactly the selected Top 5 / Top 10 list, with numbered markers matching the list and the corresponding weather variable. Changes to metric, count, network and refreshed data update both views together. Closing the panel restores the previous observation variable, age limit and precipitation period, and the full map. UKV contours remain independent. Searches and map-click selection stay within the displayed ranking while it is open.
+
 Collapsed sidebar panel with Top 5 / Top 10 lists. Current temperature, wind, gusts and one-hour precipitation use reports no older than two hours. Transmitted Tmin/Tmax, 24-hour precipitation and snow depth use a 24-hour report window. Each land station contributes its latest eligible reading, with its timestamp and network. Selecting a result plots that variable and opens the station.
 
 Rankings cover reporting UK/Ireland land stations, not every town. They follow the selected network. Summary periods and gust conventions can differ between services. Rainfall lists use precipitation water equivalent; weather codes do not measure snowfall amounts. Snow depth is ranked only when numerically reported, while snow/ice conditions are listed by report recency.

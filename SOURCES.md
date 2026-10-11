@@ -1,6 +1,6 @@
 # UK Weather Atlas — observation data
 
-This site plots land-station observations received by OGIMET. It does not use model data, interpolation, or a forecast grid. Coverage is the OGIMET United Kingdom reporting region within 49.7–61.2°N and 8.4°W–2.2°E. Only stations with a mapped identifier and a usable report in the past six hours are returned; the user may apply a shorter age limit.
+This site plots land-station observations received by OGIMET. Station markers do not use model data or interpolation. The optional UKV MSLP overlay uses forecast data and is described separately below. Coverage is the OGIMET United Kingdom reporting region within 49.7–61.2°N and 8.4°W–2.2°E. Only stations with a mapped identifier and a usable report in the past six hours are returned; the user may apply a shorter age limit.
 
 ## Data sources and cache
 
@@ -43,3 +43,9 @@ Land SYNOP downloads now cover 24 hours; METAR and marine downloads remain six h
 Decoded additions include temperature extremes, grass minima, 3/24-hour pressure changes, tendency code, past weather codes, low/middle cloud amount, low/middle/high cloud type codes, cloud-base ranges, individual SYNOP and METAR layers, METAR ceilings/vertical visibility/RVR/wind variation/recent weather/wind shear, sunshine, common radiation groups, reporting-period gusts, ground/snow state and depth, waves, swell and marine wet-bulb temperature. 911ff gusts stay separate from 910ff gusts; 907tt supplies the period when present. The menu is populated from fields actually present in the fetched window. Regional/national groups and subsurface ocean profiles remain accessible as clearly labelled original codes rather than unverified physical values. No claim is made that all possible national or special WMO extensions have been numerically decoded.
 
 Only sites with an eligible reading are plotted; unavailable data do not produce value labels. Dark map mode changes the local geography, controls and legend without sending map requests to a third-party basemap service.
+## UKV pressure overlay
+
+- Forecast data: [Met Office UKV through Open-Meteo](https://open-meteo.com/en/docs/ukmo-api), `ukmo_uk_deterministic_2km`, hourly `pressure_msl` in hPa. This is model output, separate from the OGIMET observations. The free feed has an additional delay of about four hours.
+- Transformation: nearest model-cell values sampled at 1° spacing across 47.5–62.5°N, 17°W–6°E, clipped to the UKV domain; marching-squares contour interpolation at 2 or 4 hPa. Returned latitude/longitude coordinates anchor the Leaflet paths. These are broad pressure contours, not native-resolution 2 km output.
+- Coverage uses the spherical Lambert azimuthal equal-area grid parameters published in [Open-Meteo's UKV domain definition](https://github.com/open-meteo/open-meteo/blob/main/Sources/App/UKMO/UkmoDomain.swift): radius 6,371,229 m, origin 54.9°N / 2.5°W, 1042 × 970 cells at 2,000 m, projected origin (−1,158,000 m, −1,036,000 m). A 4 km inward margin avoids boundary queries.
+- Pressure data and derived contours: [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). Attribution: Powered by Met Office data; supplied through Open-Meteo. [Free API terms](https://open-meteo.com/en/terms).

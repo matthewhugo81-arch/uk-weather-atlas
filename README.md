@@ -42,4 +42,14 @@ The observation backend remains hosted by Sites and must be public for shared vi
 
 ## Data
 
+### Optional UKV pressure overlay
+
+Enable **UKV MSLP isobars** in the **Model overlay** panel. Choose 2 or 4 hPa spacing and adjust opacity. Geographic Leaflet polylines and labels stay attached to the map during zoom and pan. The selection survives the 30-minute page reload.
+
+The browser requests `pressure_msl` explicitly from Open-Meteo's `ukmo_uk_deterministic_2km` model, with no fallback to the global or seamless model. The free UKV feed has an additional publication delay of about four hours. The overlay displays the current UTC forecast hour and its retrieval time, separately from station observation times. It checks for new data hourly while enabled and visible, including after returning to a background tab.
+
+For a broad pressure overview within the free API quota, values are sampled at 1° spacing (381 locations within the UKV domain), using the returned model-cell coordinates. This is not a native-resolution 2 km contour product. Missing cells are left blank. The complete grid and the next two hourly frames are cached in the browser for an hour, including across page reloads; an update failure may retain a saved forecast only when it contains the current hour, with an explicit warning. No credentials or backend deployment are needed.
+
+UKV pressure data and derived contours are provided under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/), attributed to the Met Office and Open-Meteo. The free API is for non-commercial use. See [Open-Meteo UKMO documentation](https://open-meteo.com/en/docs/ukmo-api) and [API terms](https://open-meteo.com/en/terms).
+
 SYNOP downloads cover 24 hours; METAR and marine downloads cover six hours. Marine coverage is 47.5–62.5°N, 17°W–6°E. Reports are cached for up to ten minutes. Missing observations are never invented or changed to measured zeros. See `SOURCES.md` and the on-site coverage notes for full caveats and third-party attribution.

@@ -88,4 +88,4 @@ function applyMapTheme(){document.querySelector('.map-shell').classList.toggle('
 try{$('dark-map').checked=localStorage.getItem('weather-map-theme')==='dark';}catch{}
 $('dark-map').onchange=applyMapTheme;applyMapTheme();
 const phoneLayout=matchMedia('(max-width:680px)');function syncLegendLayout(){document.querySelector('.legend-details').open=!phoneLayout.matches;}phoneLayout.addEventListener('change',syncLegendLayout);syncLegendLayout();
-async function init(){try{const r=await fetch('geography.json');if(!r.ok)throw Error();geographyLayer=L.geoJSON(await r.json(),{pane:'tilePane',style:geographyStyle,interactive:false}).addTo(map);}catch{notice('The base map could not load. Station observations are still available.');}fitUK();legend();await refresh();registerTools();}init();
+async function init(){try{const r=await fetch('geography.json');if(!r.ok)throw Error();geographyLayer=L.geoJSON(await r.json(),{pane:'tilePane',style:geographyStyle,interactive:false}).addTo(map);}catch{notice('The base map could not load. Station observations are still available.');}fitUK();WeatherPressureLayer.attach(map);legend();await refresh();registerTools();}init();

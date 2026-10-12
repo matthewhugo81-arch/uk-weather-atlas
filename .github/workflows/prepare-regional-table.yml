@@ -1,0 +1,45 @@
+name: Prepare regional table inputs
+on:
+  push:
+    branches: [feature/regional-observation-table]
+    paths: [.github/workflows/prepare-regional-table.yml]
+permissions:
+  contents: read
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Retrieve official boundary reference and observation test snapshot
+        run: |
+          mkdir -p regional-inputs
+          python3 - <<'PY'
+          import json, pathlib, urllib.request, urllib.parse
+          out = pathlib.Path('regional-inputs')
+          root = 'https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/'
+          services = {
+            'regions': 'Regions_December_2024_Boundaries_EN_BGC',
+            'countries': 'Countries_December_2024_Boundaries_UK_BGC',
+          }
+          for key, service in services.items():
+            url = root + service + '/FeatureServer/0/query?' + urllib.parse.urlencode({'where':'1=1','outFields':'*','outSR':'4326','geometryPrecision':'5','maxAllowableOffset':'0.0005','f':'geojson'})
+            try:
+              with urllib.request.urlopen(url, timeout=90) as response: data = json.load(response)
+              (out / (key + '.json')).write_text(json.dumps(data, separators=(',',':')))
+              print(key, len(data.get('features', [])), 'features', data.get('error', ''))
+            except Exception as error:
+              print(key, type(error).__name__, str(error))
+          try:
+            with urllib.request.urlopen('https://uk-weather-atlas.matthugo81.chatgpt.site/api/observations', timeout=90) as response: data = json.load(response)
+            (out / 'observations.json').write_text(json.dumps(data, separators=(',',':')))
+            print('Live stations:', len(data.get('stations', [])))
+          except Exception as error:
+            print('Snapshot not available:', str(error))
+          PY
+          git archive HEAD --output=regional-inputs/repository.tar
+      - uses: actions/upload-artifact@v4
+        with:
+          name: atlas-regional-inputs
+          path: regional-inputs/
+          retention-days: 2

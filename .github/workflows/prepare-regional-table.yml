@@ -4,42 +4,62 @@ on:
     branches: [feature/regional-observation-table]
     paths: [.github/workflows/prepare-regional-table.yml]
 permissions:
-  contents: read
+  contents: write
 jobs:
   prepare:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
-      - name: Retrieve official boundary reference and observation test snapshot
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Retrieve ONS boundary inputs
         run: |
           mkdir -p regional-inputs
           python3 - <<'PY'
           import json, pathlib, urllib.request, urllib.parse
           out = pathlib.Path('regional-inputs')
           root = 'https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/'
-          services = {
-            'regions': 'Regions_December_2024_Boundaries_EN_BGC',
-            'countries': 'Countries_December_2024_Boundaries_UK_BGC',
-          }
+          services = {'regions': 'Regions_December_2024_Boundaries_EN_BGC','countries': 'Countries_December_2024_Boundaries_UK_BGC'}
           for key, service in services.items():
             url = root + service + '/FeatureServer/0/query?' + urllib.parse.urlencode({'where':'1=1','outFields':'*','outSR':'4326','geometryPrecision':'5','maxAllowableOffset':'0.0005','f':'geojson'})
-            try:
-              with urllib.request.urlopen(url, timeout=90) as response: data = json.load(response)
-              (out / (key + '.json')).write_text(json.dumps(data, separators=(',',':')))
-              print(key, len(data.get('features', [])), 'features', data.get('error', ''))
-            except Exception as error:
-              print(key, type(error).__name__, str(error))
-          try:
-            with urllib.request.urlopen('https://uk-weather-atlas.matthugo81.chatgpt.site/api/observations', timeout=90) as response: data = json.load(response)
-            (out / 'observations.json').write_text(json.dumps(data, separators=(',',':')))
-            print('Live stations:', len(data.get('stations', [])))
-          except Exception as error:
-            print('Snapshot not available:', str(error))
+            with urllib.request.urlopen(url, timeout=90) as response: data = json.load(response)
+            assert len(data.get('features', [])) == (9 if key == 'regions' else 4), data.get('error', 'Incomplete boundary input')
+            (out / (key + '.json')).write_text(json.dumps(data, separators=(',',':')))
+            print(key, len(data['features']), 'features')
           PY
+      - name: Build isolated browser assets and check regressions
+        run: |
+          python3 -m pip install shapely==2.1.2
+          python3 scripts/build-regional-boundaries.py regional-inputs
+          cp dist/regional-table.js docs/regional-table.js
+          cp dist/regional-table.css docs/regional-table.css
+          python3 - <<'PY'
+          from pathlib import Path
+          tag = '<script defer src="regional-table.js?v=20261012-1"></script>'
+          for folder in ['dist','docs']:
+            path = Path(folder)/'index.html'
+            text = path.read_text()
+            if tag not in text: text = text.replace('</head>', tag+'</head>')
+            path.write_text(text)
+          PY
+          npm test | tee regional-inputs/test-results.txt
+          sha256sum dist/regional-table.js dist/regional-table.css dist/regional-boundaries.json docs/regional-table.js docs/regional-table.css docs/regional-boundaries.json | tee regional-inputs/checksums.txt
+      - name: Save generated assets on the isolated feature branch only
+        run: |
+          test "$GITHUB_REF" = refs/heads/feature/regional-observation-table
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add dist/regional-boundaries.json dist/index.html docs/index.html docs/regional-table.js docs/regional-table.css docs/regional-boundaries.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'Build and verify isolated regional table assets'
+            git push origin HEAD:feature/regional-observation-table
+          fi
+          git rev-parse HEAD | tee regional-inputs/commit.txt
           git archive HEAD --output=regional-inputs/repository.tar
       - uses: actions/upload-artifact@v4
         with:
-          name: atlas-regional-inputs
+          name: atlas-regional-verified
           path: regional-inputs/
           retention-days: 2

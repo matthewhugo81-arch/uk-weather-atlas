@@ -1,0 +1,43 @@
+.phone-nav,.phone-close,.phone-observation{display:none}
+@media(max-width:680px){
+  html,body{height:100%;overflow:hidden;overscroll-behavior:none}
+  body{height:100dvh;display:flex;flex-direction:column}
+  .topbar{height:48px;min-height:48px;padding:0 10px}
+  .brand h1{font-size:16px}.brand p{display:none}.refresh{min-height:36px;font-size:11px}
+  .phone-observation{display:flex;align-items:center;gap:9px;padding:6px 10px;background:#fff;flex-shrink:0;z-index:650;min-height:56px}
+  .phone-observation label{font-size:11px;font-weight:700;color:#52717f}
+  .phone-observation select{font-size:16px;min-width:0;min-height:44px;padding:8px;flex:1}
+  .workspace{display:block;flex:1;min-height:0;height:auto;position:relative}
+  .sidebar{display:contents}
+  .workspace>.map-shell{position:absolute;inset:0;display:block;height:100%;min-height:0;overflow:hidden}
+  .map-shell>#map{position:absolute;inset:0;height:100%;min-height:0;touch-action:none}
+  .map-heading{position:absolute;top:8px;left:10px;right:10px;padding:6px 9px;max-width:none;border-radius:6px;background:#e8f1f3ed;pointer-events:none}
+  .map-heading .eyebrow,.map-heading h2{display:none}
+  #valid-time,.map-heading p:last-child{font-size:10px;line-height:1.35;max-width:none}
+  .dark-map .map-heading{background:#102632ed}
+  .map-tools{position:absolute;top:auto;bottom:28px;left:10px;right:54px;padding:0;gap:5px;max-width:none;justify-content:flex-start}
+  .map-tools>button,.map-tools>label{font-size:11px;min-height:44px;padding:8px}
+  .map-tools input{width:16px;height:16px}
+  .leaflet-control-zoom{margin-bottom:28px!important;margin-right:8px!important}
+  .leaflet-control-zoom a{width:36px!important;height:36px!important;line-height:36px!important}
+  .leaflet-control-attribution{font-size:8px!important;max-width:100%}
+  .phone-nav{display:flex;flex-shrink:0;z-index:1100;background:#102c3a;padding:4px 4px calc(4px + env(safe-area-inset-bottom));gap:3px}
+  .phone-nav button{flex:1;min-width:0;min-height:48px;font-size:11px;border:0;background:transparent;color:#d2e3e9;border-radius:6px;padding:4px 2px}
+  .phone-nav button[aria-pressed=true]{background:#087f87;color:#fff;font-weight:700}
+  .sidebar>.controls,.sidebar>.rankings,.sidebar>.detail,.map-shell>.map-bottom{display:none}
+  .sidebar>.sidebar-footer{display:none}.map-bottom>.sidebar-footer{display:block;padding:14px 0;background:transparent;color:#526f7d}
+  .sidebar>.phone-panel-open,.map-shell>.phone-panel-open{display:block;position:fixed;inset:128px 8px calc(66px + env(safe-area-inset-bottom));z-index:1000;overflow:auto;overscroll-behavior:contain;background:#fff;color:#17323e;border:1px solid #cbd8df;border-radius:12px;padding:16px;box-shadow:0 8px 35px #10263255;margin:0;max-height:none}
+  .controls>h2{font-size:18px;margin:0 0 10px}.controls .field-label{margin-top:12px}
+  .controls input,.controls select{font-size:16px}
+  .controls>.atlas-observation-heading{margin-top:12px}
+  .phone-close{position:fixed;top:106px;right:10px;z-index:1100;min-height:44px;border:1px solid #b5cdd6;border-radius:7px;background:#fff;padding:8px 12px;font-size:12px;box-shadow:0 2px 8px #10263220}
+  body[data-phone-panel]:not([data-phone-panel=map]) .phone-close{display:block}
+  body[data-phone-panel]:not([data-phone-panel=map]) .phone-panel-open{top:154px}
+  .map-bottom .legend,.dark-map .map-bottom .legend{max-width:none;max-height:none;color:#17323e;background:#f4f8fa;border-color:#cbd8df}
+  .map-bottom .legend p,.map-bottom .legend-ticks,.map-bottom .legend-heading>span,.dark-map .map-bottom .legend-details summary{color:#526f7d}
+  .map-bottom .coverage,.dark-map .map-bottom .coverage{color:#17323e;background:transparent;padding-top:12px}
+  .notice{position:absolute;top:70px;left:8px;right:8px;max-height:80px;margin:0;font-size:11px;padding:8px;pointer-events:none}
+  .atlas-table-panel{padding:0 0 4px}.atlas-table-heading{padding-top:10px}.atlas-table-footer{max-height:24%}
+  .point-label{font-size:10px;padding:0 2px!important}
+  @media(max-height:500px){.sidebar>.phone-panel-open,.map-shell>.phone-panel-open{inset:60px 8px 60px!important}.phone-close{top:8px}.map-heading{display:none}}
+}

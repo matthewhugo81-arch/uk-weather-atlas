@@ -26,8 +26,35 @@ const baseGroups={temperature:'Temperature',dewpoint:'Temperature',humidity:'Tem
 for(const [key,group]of Object.entries(baseGroups))V[key].group=group;
 function populateVariables(){const current=variable,groups=new Map();for(const [key,v]of Object.entries(V)){const present=!data||data.stations.some(s=>key==='precipitation'?Object.keys(s.fields).some(k=>k.startsWith('precip_')):s.fields[key]);if(!present&&key!==current)continue;if(!groups.has(v.group)){const group=document.createElement('optgroup');group.label=v.group;groups.set(v.group,group);}const option=document.createElement('option');option.value=key;option.textContent=v.label;groups.get(v.group).append(option);}const order=['Temperature','Wind','Pressure','Weather & sky','Cloud','Visibility','Ground & snow','Sunshine & radiation','Marine','Precipitation','Additional observations'];$('variable').replaceChildren(...order.filter(g=>groups.has(g)).map(g=>groups.get(g)));$('variable').value=current;}
 let data=null,variable='temperature',network='all',maxAge=120,period=1,selectedId=null,loading=false,selectionMarker,geographyLayer;
+// Persist the user's view without tying report updates to page navigation.
+const viewStorageKey='weather-atlas-view-v1';
+let savedView=null,viewReady=false;
+try{savedView=JSON.parse(localStorage.getItem(viewStorageKey));}catch{}
+if(savedView&&typeof savedView==='object'){
+ if(Object.hasOwn(V,savedView.variable))variable=savedView.variable;
+ if(['all','SYNOP','METAR','BUOY','SHIP'].includes(savedView.network))network=savedView.network;
+ if([60,120,360,1440].includes(savedView.maxAge))maxAge=savedView.maxAge;
+ if([1,2,3,6,9,12,15,18,24].includes(savedView.period))period=savedView.period;
+ if(typeof savedView.selectedId==='string')selectedId=savedView.selectedId;
+ $('labels').checked=savedView.labels===true;
+}
+$('age').value=String(maxAge);$('period').value=String(period);
+document.querySelectorAll('[data-network]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.network===network)));
+function saveView(){
+ if(!viewReady)return;
+ const center=map.getCenter(),selection=rankingSnapshot||{variable,maxAge,period};
+ try{localStorage.setItem(viewStorageKey,JSON.stringify({...selection,network,selectedId,labels:$('labels').checked,center:[center.lat,center.lng],zoom:map.getZoom()}));}catch{}
+}
+function restoreMapView(){
+ const c=savedView?.center,z=savedView?.zoom;
+ if(Array.isArray(c)&&c.length===2&&c.every(Number.isFinite)&&Math.abs(c[0])<=90&&Math.abs(c[1])<=180&&Number.isFinite(z)&&z>=3.5&&z<=13)map.setView(c,z,{animate:false});
+ else fitUK();
+ viewReady=true;
+}
+window.addEventListener('pagehide',saveView);
 const map=L.map('map',{zoomControl:false,minZoom:3.5,maxZoom:13,zoomSnap:.25,zoomDelta:.25,wheelPxPerZoomLevel:240,preferCanvas:false});
 L.control.zoom({position:'bottomright'}).addTo(map);const markers=L.layerGroup().addTo(map);map.attributionControl.addAttribution('Reports: <a href="https://www.ogimet.com/">OGIMET</a> · Geography: <a href="https://www.naturalearthdata.com/">Natural Earth</a>');
+map.on('moveend zoomend',saveView);
 let noticeTimer=null;
 function notice(text,duration=0){clearTimeout(noticeTimer);noticeTimer=null;$('notice').textContent=text;$('notice').hidden=!text;if(text&&duration)noticeTimer=setTimeout(()=>{noticeTimer=null;$('notice').hidden=true;$('notice').textContent='';},duration);}
 function fitUK(){map.stop();map.invalidateSize();const mobile=matchMedia('(max-width:680px)').matches;map.fitBounds([[47.5,-17],[62.5,6]],{paddingTopLeft:mobile?[12,12]:[20,105],paddingBottomRight:mobile?[12,24]:[20,165],animate:false});}
@@ -69,7 +96,7 @@ function render(){const ranking=rankingResult();syncRankingView(ranking);populat
  $('point-count').textContent=rankingReadings?list.length+' ranked stations shown':`${values.length} readings · ${list.length} sites`;$('load-status').textContent=rankingReadings?'Top '+ranking.limit+' · '+ranking.def.label+' · close rankings for all stations':`${land} land · ${buoys} buoys/platforms · ${ships} ships · ${maxAge/60}h`;
  const ts=values.map(r=>r.time),extreme=['temperature_max','temperature_min','grass_min'].includes(variable);$('valid-time').textContent=ts.length?`${extreme?'Extreme report times':V[variable].summary?'Summary report times':'Reading report times'}: ${utc(Math.min(...ts))}${Math.max(...ts)!==Math.min(...ts)?' – '+utc(Math.max(...ts)):''}${extreme?' · Measurement period and time of extreme not specified in these groups':''}`:'No readings for this variable within the selected age limit';
  if(data)$('feed-status').textContent='OGIMET fetched '+utc(data.fetchedAt)+'. '+Object.entries(data.sources).map(([kind,info])=>kind+' '+(info.ok?'available':'unavailable')).join(' · ')+'.';
- renderDetail();renderRankings(ranking);if(rankingReadings)search();
+ renderDetail();renderRankings(ranking);if(rankingReadings)search();saveView();
 }
 
 function renderRankings({choice,def,limit,result}=rankingResult()){
@@ -90,8 +117,8 @@ function renderDetail(){if(!selectedId)return;const s=data?.stations.find(s=>s.i
  for(const [kind,report]of Object.entries(s.reports))html+=`<details class="raw-report"><summary>Latest ${kind} · ${utc(report.time)}</summary><pre>${esc(report.raw)}</pre></details>`;
  html+='<p class="detail-sub">Each reading keeps its own timestamp and source. An unreported value is not a measured zero.</p>';$('detail-content').innerHTML=html;$('detail-content').querySelectorAll('[data-variable]').forEach(b=>b.onclick=()=>setVariable(b.dataset.variable));
 }
-function selectStation(id,pan=false){if(noticeTimer)notice('');const s=data?.stations.find(s=>s.id===id);if(!s)throw Error('Station not found in retrieved reports');if(rankingReadings&&!rankingReadings.has(id))throw Error('This station is outside the selected ranking. Close Station Rankings to inspect all stations.');selectedId=id;if(selectionMarker)selectionMarker.remove();selectionMarker=L.circleMarker([s.lat,s.lon],{radius:rankingReadings?18:12,color:'#173f4c',fill:false,weight:2,interactive:false}).addTo(map);if(pan)map.setView([s.lat,s.lon],8,{animate:false});renderDetail();return s;}
-function clearSelection(){selectedId=null;if(selectionMarker)selectionMarker.remove();$('clear-selection').hidden=true;$('detail-content').innerHTML='<div class="empty-pin" aria-hidden="true">⌖</div><h2>Read the observation</h2><p>Select a station to see its readings, observation times and original METAR or SYNOP report.</p>';}
+function selectStation(id,pan=false){if(noticeTimer)notice('');const s=data?.stations.find(s=>s.id===id);if(!s)throw Error('Station not found in retrieved reports');if(rankingReadings&&!rankingReadings.has(id))throw Error('This station is outside the selected ranking. Close Station Rankings to inspect all stations.');selectedId=id;if(selectionMarker)selectionMarker.remove();selectionMarker=L.circleMarker([s.lat,s.lon],{radius:rankingReadings?18:12,color:'#173f4c',fill:false,weight:2,interactive:false}).addTo(map);if(pan)map.setView([s.lat,s.lon],8,{animate:false});renderDetail();saveView();return s;}
+function clearSelection(){selectedId=null;saveView();if(selectionMarker)selectionMarker.remove();$('clear-selection').hidden=true;$('detail-content').innerHTML='<div class="empty-pin" aria-hidden="true">⌖</div><h2>Read the observation</h2><p>Select a station to see its readings, observation times and original METAR or SYNOP report.</p>';}
 function setVariable(key){if(!Object.hasOwn(V,key))throw Error('Unsupported observation');if($('rankings-panel').open){$('rankings-panel').open=false;restoreRankingView();}variable=key;if(V[key].summary){maxAge=1440;$('age').value='1440';}$('variable').value=key;render();}
 function search(){const q=$('search').value.trim().toLowerCase();$('search-results').replaceChildren();if(!q)return;const matches=(rankingReadings?stations():(data?.stations||[])).filter(s=>[s.name,s.wmo,s.icao].filter(Boolean).some(x=>x.toLowerCase().includes(q))).slice(0,12);if(!matches.length){$('search-results').textContent=rankingReadings?'No matching station in this ranking. Close Station Rankings to search all stations.':'No reporting station matches. Try a station name, WMO or ICAO code.';return;}for(const s of matches){const b=document.createElement('button');b.type='button';b.textContent=s.name;const t=document.createElement('small');t.textContent=[s.wmo,s.icao,Object.keys(s.reports).join(' + ')].filter(Boolean).join(' · ');b.append(t);b.onclick=()=>{$('search').value=s.name;$('search-results').replaceChildren();selectStation(s.id,true);};$('search-results').append(b);}}
 async function refresh(){if(loading)return;loading=true;$('refresh').disabled=true;$('load-status').textContent='Retrieving station reports…';try{const r=await fetch('https://uk-weather-atlas.matthugo81.chatgpt.site/api/observations',{cache:'no-store',signal:AbortSignal.timeout(85000)});const next=await r.json();if(!r.ok||!next.success)throw Error(next.error||next.warnings?.join(' ')||'OGIMET reports are temporarily unavailable. Try again shortly.');data=next;render();notice(next.warnings.join(' '));}catch(e){notice((data?'Could not refresh; retained readings keep their original observation times. ':'')+e.message);if(data)render();else{$('load-status').textContent='Reports unavailable · use Refresh reports';$('feed-status').textContent='Observation feeds could not load. Use Refresh reports to retry.';}}finally{loading=false;$('refresh').disabled=false;}}
@@ -104,4 +131,4 @@ function applyMapTheme(){document.querySelector('.map-shell').classList.toggle('
 try{$('dark-map').checked=localStorage.getItem('weather-map-theme')==='dark';}catch{}
 $('dark-map').onchange=applyMapTheme;applyMapTheme();
 const phoneLayout=matchMedia('(max-width:680px)');function syncLegendLayout(){document.querySelector('.legend-details').open=!phoneLayout.matches;}phoneLayout.addEventListener('change',syncLegendLayout);syncLegendLayout();
-async function init(){try{const r=await fetch('geography.json');if(!r.ok)throw Error();geographyLayer=L.geoJSON(await r.json(),{pane:'tilePane',style:geographyStyle,interactive:false}).addTo(map);}catch{notice('The base map could not load. Station observations are still available.');}fitUK();WeatherPressureLayer.attach(map);legend();await refresh();registerTools();}init();
+async function init(){try{const r=await fetch('geography.json');if(!r.ok)throw Error();geographyLayer=L.geoJSON(await r.json(),{pane:'tilePane',style:geographyStyle,interactive:false}).addTo(map);}catch{notice('The base map could not load. Station observations are still available.');}restoreMapView();WeatherPressureLayer.attach(map);legend();await refresh();registerTools();}init();

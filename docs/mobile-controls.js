@@ -1,4 +1,4 @@
-/* Mobile-only accordion controls; existing form fields and map logic stay in place. */
+/* Accordion controls: model overlay on all screens, observation age on phones; existing form fields and map logic stay in place. */
 (() => {
   const ageWrap = document.querySelector('.age-wrap');
   const ageSelect = document.getElementById('age');
@@ -74,6 +74,6 @@
   // Keep the collapsed labels accurate without modifying their event handlers.
   const phone = window.matchMedia('(max-width: 680px)');
   window.setInterval(() => {
-    if (phone.matches && !document.hidden) syncSummaries();
+    if (!document.hidden) syncSummaries();
   }, 5000);
 })();

@@ -96,3 +96,20 @@
   .controls>.hint{margin-top:9px;line-height:1.45}
   .controls>.feed-status{margin-top:10px;padding-top:8px}
 }
+
+/* Model controls remain collapsed until explicitly opened on every screen size. */
+.controls>.rankings{margin-top:16px;padding:12px;border:1px solid var(--line);border-radius:7px;grid-column:1/-1}
+.controls>.detail{margin-top:20px;padding:16px 0;grid-column:1/-1}
+.model-layer.mobile-collapsible{padding:0;background:#f8fbfc}
+.model-layer.mobile-collapsible>legend{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.model-layer>.mobile-accordion-toggle{width:100%;min-height:54px;display:flex;align-items:center;justify-content:space-between;gap:12px;text-align:left;border:0;border-radius:7px;padding:9px 13px;color:#17323e;background:transparent}
+.model-layer .mobile-toggle-copy{display:flex;min-width:0;flex-direction:column;gap:2px}
+.model-layer .mobile-toggle-copy strong{font-size:14px;line-height:1.25}
+.model-layer .mobile-toggle-status{font-size:12px;line-height:1.35;color:#587481}
+.model-layer .mobile-toggle-chevron{font-size:22px;line-height:1}
+.model-layer [aria-expanded=true] .mobile-toggle-chevron{transform:rotate(180deg)}
+.model-layer>.mobile-accordion-toggle:focus-visible{outline:3px solid #cf9f28;outline-offset:2px}
+.model-layer.mobile-collapsible>.ukv-toggle{margin:0 13px 8px}
+.model-layer.mobile-collapsible>.ukv-options,.model-layer.mobile-collapsible>.ukv-status{margin:8px 13px}
+.model-layer.mobile-collapsible>.ukv-info{margin:8px 13px 13px}
+.model-layer.mobile-collapsed>:not(legend):not(.mobile-accordion-toggle){display:none!important}

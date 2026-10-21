@@ -11,6 +11,12 @@ globalThis.ObservationVariables=(()=>{
  numeric('gust_period','Maximum gust · reporting period','mph',0,70,'Wind','SYNOP 911ff gust over the period specified by 907tt, or the synoptic interval. Details show the reported period.');
  text('wind_variation','Wind direction variation · METAR','Wind');text('wind_shear','Runway wind shear · METAR','Wind');
  numeric('pressure_change_3h','Pressure change · 3 hours','hPa',-10,10,'Pressure');numeric('pressure_change_24h','Pressure change · 24 hours','hPa',-20,20,'Pressure');code('pressure_tendency','Pressure tendency · 3 hours','Pressure','0200');
+ const pressureColours=['#173b8f','#287ac7','#88bde6','#858b94','#f4b15c','#e86b20','#a82c13'];
+ for(const key of ['pressure_change_3h','pressure_change_24h']){out[key].colours=pressureColours;out[key].note='Blue: pressure falling · grey: unchanged · orange/red: pressure rising. Colour strength shows the size of the change; values beyond the legend limits use the end colours.';}
+ out.pressure_change_3h.min=-3;out.pressure_change_3h.max=3;
+ out.pressure_change_24h.min=-12;out.pressure_change_24h.max=12;
+ out.pressure_tendency.categories=[[0,'#e7a25d'],[1,'#d98032'],[2,'#be581c'],[3,'#963816'],[4,'#858b94'],[5,'#86bce2'],[6,'#529cd3'],[7,'#287ac7'],[8,'#173b8f']];
+ out.pressure_tendency.note='WMO tendency categories (0–8), not a numeric magnitude: orange/brown 0–3, grey 4 (steady), blue 5–8. Select a station for its code and original report.';
  text('geopotential','Pressure-level geopotential · coded','Pressure','The pressure level and its original height code are retained; these groups are not sea-level pressure.');
  text('weather_codes','Exact present-weather codes · METAR','Weather & sky');text('recent_weather','Recent weather · METAR','Weather & sky');code('past_weather_1','Past weather · category 1','Weather & sky','4561 / 4531');code('past_weather_2','Past weather · category 2','Weather & sky','4561 / 4531');
  numeric('low_mid_cloud','Low / middle cloud amount','oktas',0,8,'Cloud');code('low_cloud_type','Low cloud type · SYNOP','Cloud','0513');code('mid_cloud_type','Middle cloud type · SYNOP','Cloud','0515');code('high_cloud_type','High cloud type · SYNOP','Cloud','0509');

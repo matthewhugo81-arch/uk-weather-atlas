@@ -102,7 +102,7 @@
       move(byId('variable'),bar.firstElementChild);move(periodWrap,bar);
       for(const panel of Object.values(panels))move(panel,content);
       move(document.querySelector('.sidebar-footer'),panels.key);
-      show(null);requestAnimationFrame(fitPhone);
+      show(null);requestAnimationFrame(()=>{if(savedView?.center||viewReady)map.invalidateSize({pan:false});else fitPhone();});
     }else if(ready){
       active=null;sheet.hidden=true;body.classList.remove('phone-layout');
       for(const [element,anchor] of homes)anchor.after(element);

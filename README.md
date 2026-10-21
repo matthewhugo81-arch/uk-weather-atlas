@@ -46,7 +46,7 @@ The observation backend remains hosted by Sites and must be public for shared vi
 
 ### Optional UKV pressure overlay
 
-Enable **UKV MSLP isobars** in the **Model overlay** panel. Choose 2 or 4 hPa spacing and adjust opacity. Geographic Leaflet polylines and labels stay attached to the map during zoom and pan. The selection survives the 30-minute page reload.
+Enable **UKV MSLP isobars** in the **Model overlay** panel. Choose 2 or 4 hPa spacing and adjust opacity. Geographic Leaflet polylines and labels stay attached to the map during zoom and pan. The controls are collapsed until opened. Reports refresh in place every ten minutes; map position, observation, network, age, precipitation period and value-label settings also survive manual reloads.
 
 The browser requests `pressure_msl` explicitly from Open-Meteo's `ukmo_uk_deterministic_2km` model, with no fallback to the global or seamless model. The free UKV feed has an additional publication delay of about four hours. The overlay displays the current UTC forecast hour and its retrieval time, separately from station observation times. It checks for new data hourly while enabled and visible, including after returning to a background tab.
 

@@ -113,3 +113,14 @@
 .model-layer.mobile-collapsible>.ukv-options,.model-layer.mobile-collapsible>.ukv-status{margin:8px 13px}
 .model-layer.mobile-collapsible>.ukv-info{margin:8px 13px 13px}
 .model-layer.mobile-collapsed>:not(legend):not(.mobile-accordion-toggle){display:none!important}
+
+/* The history controls share the observation sidebar on desktop and phones. */
+.history-controls{margin-top:18px}
+.history-controls .field-label{margin-top:0}
+.history-buttons{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-top:8px}
+.history-buttons button{min-height:44px;padding:7px 3px;border:1px solid #c7d6de;border-radius:5px;background:#f3f7f8;color:#173d4c;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer}
+.history-buttons button:disabled{opacity:.45;cursor:default}
+.history-buttons button[aria-pressed="true"]{background:#102c3a;color:#fff}
+.history-buttons button:focus-visible{outline:2px solid #007f8a;outline-offset:2px}
+#history-status{font-size:12px;line-height:1.5;color:#5c7786;margin:8px 0 0}
+#history-map-time{font-weight:700;color:#8b4f12;background:#fff4d8;padding:4px 8px;border-radius:4px;width:fit-content}

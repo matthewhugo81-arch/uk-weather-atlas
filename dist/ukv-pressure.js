@@ -1,8 +1,8 @@
 'use strict';
-globalThis.WeatherPressureLayer = {attach(map) {
+globalThis.WeatherPressureLayer = {attach(map, selectedTime=()=>Date.now()) {
   const core=UKVPressure, $=id=>document.getElementById(id);
   const toggle=$('ukv-mslp'), status=$('ukv-status'), options=$('ukv-options'), caption=$('ukv-map-caption');
-  const cacheKey='ukv-pressure-grid-v1', settingsKey='ukv-pressure-settings-v1', attemptKey='ukv-pressure-attempt-v1';
+  const cacheKey='ukv-pressure-grid-v2', settingsKey='ukv-pressure-settings-v1', attemptKey='ukv-pressure-attempt-v2';
   const read=key=>{try{return JSON.parse(localStorage.getItem(key));}catch{return null;}};
   const write=(key,value)=>{try{localStorage.setItem(key,JSON.stringify(value));}catch{}};
   let bundle=read(cacheKey), pending=false, lines=[], lastFrame=null, retryAt=0, lastError='';
@@ -37,8 +37,8 @@ globalThis.WeatherPressureLayer = {attach(map) {
   }
   function draw() {
     if(!toggle.checked)return;
-    const frame=core.frame(bundle);
-    if(!frame){clear();return false;}
+    const frame=core.frame(bundle,Date.now(),selectedTime());
+    if(!frame){clear();status.textContent='UKV pressure is unavailable for the selected hour. ';return false;}
     const key=bundle.fetchedAt+':'+frame.validTime+':'+$('ukv-interval').value;
     if(lastFrame!==key) {
       layer.clearLayers();lines=core.contours(frame.points,core.GRID.rows,core.GRID.columns,Number($('ukv-interval').value));
@@ -54,9 +54,10 @@ globalThis.WeatherPressureLayer = {attach(map) {
     return true;
   }
   async function update() {
-    if(!toggle.checked||pending||document.hidden)return;
+    if(!toggle.checked||document.hidden)return;
     const shared=read(cacheKey);if(shared?.fetchedAt>(bundle?.fetchedAt||0))bundle=shared;
     const shown=draw(), now=Date.now();
+    if(pending){if(!shown)status.textContent='Loading UKV pressure for the selected hour…';return;}
     if(shown&&now-bundle.fetchedAt<core.HOUR)return;
     if(now<retryAt){status.textContent=(shown?status.textContent+' Saved forecast; update unavailable. ':'UKV layer unavailable. ')+lastError;return;}
     // Share a brief request lock/backoff across tabs, including full page reloads.
@@ -67,7 +68,7 @@ globalThis.WeatherPressureLayer = {attach(map) {
       const next=await core.load();
       if(!core.frame(next))throw Error('No current UKV pressure forecast is available.');
       bundle=next;write(cacheKey,bundle);retryAt=0;lastError='';
-      if(toggle.checked)draw();
+      if(toggle.checked&&!draw())status.textContent='UKV pressure is unavailable for the selected hour.';
     } catch(error) {
       retryAt=Date.now()+5*60000;lastError=error.message;
       if(toggle.checked){const retained=draw();status.textContent=(retained?status.textContent+' Saved forecast; update unavailable. ': 'UKV layer unavailable. ')+error.message;}
@@ -90,4 +91,5 @@ globalThis.WeatherPressureLayer = {attach(map) {
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)update();});
   setInterval(update,60000);
   opacity();change();
+  return {update};
 }};

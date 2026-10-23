@@ -28,7 +28,7 @@ test('UKV domain clipping and explicit model selection cannot fall back to globa
   assert.equal(url.searchParams.get('models'),'ukmo_uk_deterministic_2km');
   assert.equal(url.searchParams.get('hourly'),'pressure_msl');
   assert.equal(url.searchParams.get('cell_selection'),'nearest');
-  assert.equal(url.searchParams.get('start_hour'),'2026-10-11T14:00');
+  assert.equal(url.searchParams.get('start_hour'),'2026-10-11T10:00');
   assert.equal(url.searchParams.get('end_hour'),'2026-10-11T16:00');
 });
 

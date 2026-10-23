@@ -23,7 +23,7 @@ test('dispatch cache restrictions do not stop observations; named cache survives
  entries.set('https://weather.test/_cache/ogimet-stations-v4',new Response(JSON.stringify(directory)));
  const ctx={waitUntil:p=>pending.push(p)},request=new Request('https://weather.test/api/observations');
  const worker=await freshWorker();let response=await worker.fetch(request,{},ctx);const data=await response.json();
- assert.equal(response.status,200);assert.equal(data.success,true);assert.equal(data.stations.length,1);assert.equal(data.sources.METAR.ok,true);assert.equal(data.sources.SYNOP.ok,true);assert.equal(opened,'uk-ireland-observation-fields-v5');assert.equal(calls(),6);
+ assert.equal(response.status,200);assert.equal(data.success,true);assert.equal(data.stations.length,1);assert.equal(data.sources.METAR.ok,true);assert.equal(data.sources.SYNOP.ok,true);assert.equal(opened,'uk-ireland-observation-fields-v7');assert.equal(calls(),6);
  await Promise.all(pending);response=await (await freshWorker()).fetch(request,{},ctx);assert.equal(response.status,200);assert.equal(calls(),6,'a new worker should reuse the named cache');
 });
 test('cache read/write or open failure cannot suppress valid feed data',async()=>{
@@ -33,4 +33,23 @@ test('cache read/write or open failure cannot suppress valid feed data',async()=
   assert.equal(response.status,200);assert.equal(data.stations.length,1);assert.equal(calls(),8);
   assert.equal((await worker.fetch(request)).status,200);assert.equal(calls(),8,'memory cache still limits source requests');
  }
+});
+
+test('daily SYNOP failure falls back to nine hours and still returns the timeline',async()=>{
+ installCache(async()=>null);installSources();const normal=globalThis.fetch;let fallbacks=0;
+ const timestamp=s=>Date.UTC(+s.slice(0,4),+s.slice(4,6)-1,+s.slice(6,8),+s.slice(8,10),+s.slice(10,12));
+ globalThis.fetch=async url=>{
+  const u=new URL(url);
+  if(u.pathname.endsWith('/getsynop')&&u.searchParams.has('state')){
+   const hours=(timestamp(u.searchParams.get('end'))-timestamp(u.searchParams.get('begin')))/3600000;
+   if(hours>24)throw Error('daily query timeout');
+   assert.equal(hours,9);fallbacks++;
+  }
+  return normal(url);
+ };
+ const response=await (await freshWorker()).fetch(new Request('https://weather.test/api/observations'));
+ const data=await response.json();assert.equal(response.status,200);assert.equal(fallbacks,2);
+ assert.equal(data.sources.SYNOP.ok,true);assert.ok(data.stations[0].fields.temperature.SYNOP);
+ assert.equal(data.warnings.filter(w=>w.includes('daily SYNOP retrieval failed')).length,2);
+ assert.deepEqual(data.history.map(f=>f.asOf),[1,2,3].map(n=>data.fetchedAt-n*3600));
 });

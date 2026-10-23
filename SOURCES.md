@@ -1,5 +1,11 @@
 # UK Weather Atlas — observation data
 
+## Hourly playback (23 October 2026)
+
+The current pipeline downloads 27 hours of SYNOP and nine hours of METAR/marine reports. This supplies live readings and three historical views, each one hour earlier than the retrieval timestamp. Each view selects only reports at or before its cutoff, retains each field's timestamp, and resolves moving marine positions from that view's latest report. Age windows remain 24 hours for SYNOP and six for METAR/marine before the user's shorter filter. Historical views describe reported conditions at the selected time; they do not reconstruct when delayed reports first arrived at OGIMET. If the daily SYNOP query fails, a nine-hour retry supplies recent readings with an explicit summary-coverage warning.
+
+UKV playback uses `pressure_msl` forecast values valid at each selected UTC hour from Open-Meteo's current UKV time series. It is not an archive of individual model runs. Missing hours clear the layer. The model grid request includes four past hours to cover the three-hour observation history across cache/hour boundaries, plus the current and next two hours. Cache freshness is checked against the actual clock independently of the selected valid hour. Earlier dated sections below describe the original implementation.
+
 This site plots land-station observations received by OGIMET. Station markers do not use model data or interpolation. The optional UKV MSLP overlay uses forecast data and is described separately below. Coverage is the OGIMET United Kingdom reporting region within 49.7–61.2°N and 8.4°W–2.2°E. Only stations with a mapped identifier and a usable report in the past six hours are returned; the user may apply a shorter age limit.
 
 ## Data sources and cache

@@ -217,3 +217,15 @@ export function combineReports(directory,feeds,now=Date.now()/1000){
  return {stations:[...stations.values()],unmapped:[...unmapped],counts};
 }
 
+// Reconstruct each view from reports at or before its cutoff. Moving marine
+// positions and partial land reports must be resolved separately for each hour.
+export function observationHistory(directory,feeds,now=Date.now()/1000){
+ return [1,2,3].map(hoursBack=>{
+  const asOf=Math.floor(now)-hoursBack*3600;
+  const past=Object.fromEntries(Object.entries(feeds).map(([kind,reports])=>[kind,reports.filter(r=>r.time<=asOf)]));
+  const land=combineReports(directory,{SYNOP:past.SYNOP||[],METAR:past.METAR||[]},asOf);
+  const marine=combineMarine([...(past.SHIP||[]),...(past.BUOY||[])],asOf);
+  return {hoursBack,asOf,stations:[...land.stations,...marine.stations]};
+ });
+}
+

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 await import('../dist/regional-table.js');
-const {regionFor,matchesRegion,sortRows,inRing}=globalThis.WeatherRegionalTable;
+const {regionFor,matchesRegion,sortRows,inRing,convertWindValue,isWindVariable}=globalThis.WeatherRegionalTable;
 const boundaries=JSON.parse(fs.readFileSync('dist/regional-boundaries.json','utf8'));
 const station=(name,lat,lon,extra={})=>({id:name,name,lat,lon,country:'United Kingdom',type:'land',...extra});
 const cases=[
@@ -43,8 +43,26 @@ test('trace is distinct from zero; categorical values and observation times sort
  assert.equal(sortRows([row('Rain','Rain / drizzle'),row('Fog','Fog / mist')],'value','asc')[0].station.name,'Fog');
  assert.equal(sortRows([row('No height',1,100,null),row('Low',1,100,-4)],'elevation','asc')[1].station.name,'No height');
 });
+test('table wind conversions use precise factors without altering stored mph readings',()=>{
+ const original=48.3;
+ assert.equal(convertWindValue(original,'mph'),original);
+ assert.equal(convertWindValue(original,'km/h').toFixed(1),'77.7');
+ assert.equal(convertWindValue(original,'kt').toFixed(1),'42.0');
+ assert.equal(convertWindValue(0,'kt'),0);
+ assert.equal(convertWindValue(null,'km/h'),null);
+ assert.equal(original,48.3);
+ assert.equal(isWindVariable('wind'),true);
+ assert.equal(isWindVariable('gust'),true);
+ assert.equal(isWindVariable('temperature'),false);
+});
+test('wind sorting remains valid after unit selection because conversion is monotonic',()=>{
+ const rows=[row('A',48.3),row('B',33.4),row('C',null)];
+ assert.deepEqual(sortRows(rows,'value','desc').map(r=>r.station.name),['A','B','C']);
+ assert.ok(convertWindValue(rows[0].reading.value,'km/h')>convertWindValue(rows[1].reading.value,'km/h'));
+ assert.ok(convertWindValue(rows[0].reading.value,'kt')>convertWindValue(rows[1].reading.value,'kt'));
+});
 test('browser assets are present in both source and Pages without core map changes',()=>{
  for(const file of ['regional-table.js','regional-table.css','regional-boundaries.json'])assert.equal(fs.readFileSync('dist/'+file,'utf8'),fs.readFileSync('docs/'+file,'utf8'));
- for(const dir of ['dist','docs'])assert.match(fs.readFileSync(dir+'/index.html','utf8'),/regional-table\.js\?v=/);
+ for(const dir of ['dist','docs']){assert.match(fs.readFileSync(dir+'/index.html','utf8'),/regional-table\.js\?v=/);assert.match(fs.readFileSync(dir+'/regional-table.js','utf8'),/id="atlas-wind-unit"/);}
  assert.ok(boundaries.features.length>5);
 });

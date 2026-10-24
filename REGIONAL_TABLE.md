@@ -6,6 +6,8 @@ Select **Table** beside the existing Observation selector. Choose a region in th
 
 Scotland, Northern England, Wales, Midlands and Southern England are included. Northern England combines ONS North East, North West and Yorkshire and the Humber; Midlands combines East and West Midlands; Southern England includes the East of England, London, South East and South West. Northern Ireland, Ireland, Crown Dependencies and nearby marine observations have separate choices. Unmatched land sites are retained under Other / unassigned land. An open Station rankings panel still limits both views to the active ranking, explicitly identified above the table.
 
+Only when viewing mean wind speed or gusts, **Wind units** offers MPH (default), km/h and knots (kt). Conversion affects the regional table values and headings only, not the underlying mph observations, map, colours or station details. Numeric sorting continues to use the original values and therefore retains the same order in every unit.
+
 The table uses each reading's timestamp, original network, qualifiers and units. Summary report times are not the time of a temperature extreme. MSLP and QNH remain separate. Rows without the selected variable show an em dash; their report-time cell does not borrow the time of another observation.
 
 ## Isolation and performance

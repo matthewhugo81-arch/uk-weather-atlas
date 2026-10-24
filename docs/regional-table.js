@@ -8,6 +8,12 @@
     iom:'Isle of Man', channel:'Channel Islands', marine:'Nearby seas', other:'Other / unassigned land'
   };
   const collator = new Intl.Collator('en-GB', {numeric:true, sensitivity:'base'});
+  // Readings are stored in mph. Only the regional table's displayed speeds are converted.
+  const windFactors=Object.freeze({mph:1,'km/h':1.609344,kt:1.609344/1.852});
+  const isWindVariable=key=>key==='wind'||key==='gust';
+  function convertWindValue(value,unit='mph'){
+    return typeof value==='number'&&Number.isFinite(value)?value*(windFactors[unit]??1):value;
+  }
   function inRing(x,y,ring) {
     let inside=false;
     for(let i=0,j=ring.length-1;i<ring.length;j=i++) {
@@ -62,12 +68,12 @@
       return sign*(diff||trace)||collator.compare(a.station.name,b.station.name)||collator.compare(a.station.id,b.station.id);
     });
   }
-  globalThis.WeatherRegionalTable={regions,inRing,regionFor,matchesRegion,sortRows};
+  globalThis.WeatherRegionalTable={regions,inRing,regionFor,matchesRegion,sortRows,convertWindValue,isWindVariable};
   if(typeof document==='undefined')return;
   const byId=id=>document.getElementById(id), shell=document.querySelector('.map-shell');
   if(!shell||typeof getReading!=='function')return;
-  const css=document.createElement('link');css.rel='stylesheet';css.href='regional-table.css?v=20261012-1';document.head.append(css);
-  let active=false,boundaries=null,boundaryTask=null,boundaryError='',region='land',sortKey='name',sortDirection='asc',frame=0;
+  const css=document.createElement('link');css.rel='stylesheet';css.href='regional-table.css?v=20261024-wind-units';document.head.append(css);
+  let active=false,boundaries=null,boundaryTask=null,boundaryError='',region='land',sortKey='name',sortDirection='asc',windUnit='mph',frame=0;
   let regionCache=new WeakMap();
   try{const saved=localStorage.getItem('atlas-table-region-v1');if(Object.hasOwn(regions,saved))region=saved;}catch{}
   const label=document.querySelector('label[for="variable"]'),heading=document.createElement('div');
@@ -76,7 +82,7 @@
   switcher.innerHTML='<button type="button" id="atlas-map-view" aria-pressed="true">Map</button><button type="button" id="atlas-table-view" aria-pressed="false" aria-controls="atlas-table-panel">Table</button>';
   heading.append(switcher);
   const panel=document.createElement('section');panel.id='atlas-table-panel';panel.className='atlas-table-panel';panel.hidden=true;panel.setAttribute('aria-label','Regional station observations');
-  panel.innerHTML=`<header class="atlas-table-heading"><div><p class="eyebrow">REGIONAL OBSERVATIONS</p><h2 id="atlas-table-title">Station table</h2></div><label class="atlas-region-label" for="atlas-region">Region<select id="atlas-region">${Object.entries(regions).map(([key,text])=>`<option value="${key}">${text}</option>`).join('')}</select></label></header>
+  panel.innerHTML=`<header class="atlas-table-heading"><div><p class="eyebrow">REGIONAL OBSERVATIONS</p><h2 id="atlas-table-title">Station table</h2></div><div class="atlas-table-filters"><label class="atlas-wind-unit-label" id="atlas-wind-unit-label" for="atlas-wind-unit" hidden>Wind units<select id="atlas-wind-unit" aria-label="Wind speed units for table"><option value="mph">MPH (default)</option><option value="km/h">km/h</option><option value="kt">Knots (kt)</option></select></label><label class="atlas-region-label" for="atlas-region">Region<select id="atlas-region">${Object.entries(regions).map(([key,text])=>`<option value="${key}">${text}</option>`).join('')}</select></label></div></header>
     <p id="atlas-table-status" class="atlas-table-status" role="status"></p><p class="atlas-swipe-hint">Swipe the table sideways for all columns.</p>
     <p id="atlas-table-warning" class="atlas-table-warning" role="status" hidden></p>
     <button type="button" id="atlas-region-retry" class="atlas-region-retry" hidden>Retry regional boundaries</button>
@@ -117,7 +123,8 @@
   }
   function draw(){
     if(!active)return;
-    const v=V[variable],unit=v.unit?` (${v.unit})`:'',title=v.label+(variable==='precipitation'?` · ${period}h`:'');
+    const v=V[variable],showWindUnits=isWindVariable(variable),displayUnit=showWindUnits?windUnit:v.unit,unit=displayUnit?` (${displayUnit})`:'',title=v.label+(variable==='precipitation'?` · ${period}h`:'');
+    byId('atlas-wind-unit-label').hidden=!showWindUnits;
     byId('atlas-table-title').textContent=title+unit;
     byId('atlas-value-heading').textContent=title+unit;
     byId('atlas-table-caption').textContent=`${regions[region]} · ${title}${unit}. Activate a column heading to sort.`;
@@ -133,7 +140,7 @@
     const ranking=rankingReadings?' · Station ranking active — close Station rankings for all sites.':'';
     byId('atlas-table-status').textContent=!boundaries?(boundaryError?'Regional grouping unavailable.':'Loading regional boundaries…'):!data?byId('load-status').textContent:`${regions[region]} · ${readings.length} readings / ${rows.length} sites · ${networkLabel} · age ≤ ${maxAge/60}h${hoursBack?' · History: '+utc(viewTime()):''}${ranking}`;
     byId('atlas-table-note').textContent=v.note+' Select a station for its report. All times UTC; — means no eligible reading.';
-    body.innerHTML=rows.map(({station:s,reading:r,region:area})=>`<tr${s.id===selectedId?' class="atlas-selected-row"':''}><th scope="row"><button type="button" class="atlas-station-link" data-table-station="${esc(s.id)}"${s.id===selectedId?' aria-current="true"':''}>${esc(s.name)}</button><small>${esc([s.wmo,s.icao].filter(Boolean).join(' / ')||s.reportId||'')}${region==='land'?' · '+esc(regions[area]):''}</small></th><td>${Number.isFinite(s.elevation)?esc(String(s.elevation)):'—'}</td><td class="atlas-reading">${r?`<span class="atlas-value-dot" aria-hidden="true" style="background:${colour(r)}"></span>${esc(format(r,variable,true))}${r.derived?'<small>derived</small>':''}`:'<span class="atlas-missing" title="No reading for the selected network and age limit">—</span>'}</td><td>${r?`<time datetime="${new Date(r.time*1000).toISOString()}">${esc(utc(r.time).replace(' UTC',''))}</time><small>${esc(r.source)} · ${age(r.time)} min old${hoursBack?' at selected time':''}</small>`:'—'}</td></tr>`).join('');
+    body.innerHTML=rows.map(({station:s,reading:r,region:area})=>`<tr${s.id===selectedId?' class="atlas-selected-row"':''}><th scope="row"><button type="button" class="atlas-station-link" data-table-station="${esc(s.id)}"${s.id===selectedId?' aria-current="true"':''}>${esc(s.name)}</button><small>${esc([s.wmo,s.icao].filter(Boolean).join(' / ')||s.reportId||'')}${region==='land'?' · '+esc(regions[area]):''}</small></th><td>${Number.isFinite(s.elevation)?esc(String(s.elevation)):'—'}</td><td class="atlas-reading">${r?`<span class="atlas-value-dot" aria-hidden="true" style="background:${colour(r)}"></span>${esc(showWindUnits&&typeof r.value==='number'&&Number.isFinite(r.value)?(r.qualifier||'')+convertWindValue(r.value,windUnit).toFixed(v.dec??1):format(r,variable,true))}${r.derived?'<small>derived</small>':''}`:'<span class="atlas-missing" title="No reading for the selected network and age limit">—</span>'}</td><td>${r?`<time datetime="${new Date(r.time*1000).toISOString()}">${esc(utc(r.time).replace(' UTC',''))}</time><small>${esc(r.source)} · ${age(r.time)} min old${hoursBack?' at selected time':''}</small>`:'—'}</td></tr>`).join('');
     if(!rows.length){const message=!boundaries?(boundaryError?'Retry regional boundaries, or return to Map.':'Preparing the regional table…'):!data?'No observations loaded. Use Refresh reports.':(network==='BUOY'||network==='SHIP')&&region!=='marine'?'This network contains marine sites. Choose Nearby seas, or switch to Combined for land stations.':rankingReadings?'No ranked sites in this region. Close Station rankings to see all eligible sites.':'No reporting stations match this region, network and age limit.';body.innerHTML=`<tr><td colspan="4" class="atlas-table-empty">${esc(message)}</td></tr>`;}
     scroll.scrollTop=scrollTop;
     if(focused)Array.from(body.querySelectorAll('[data-table-station]')).find(b=>b.dataset.tableStation===focused)?.focus({preventScroll:true});
@@ -143,6 +150,7 @@
     }
   }
   byId('atlas-map-view').onclick=()=>setView(false);byId('atlas-table-view').onclick=()=>setView(true);
+  byId('atlas-wind-unit').onchange=e=>{if(Object.hasOwn(windFactors,e.target.value)){windUnit=e.target.value;draw();}};
   byId('atlas-region').onchange=e=>{region=e.target.value;panel.querySelector('.atlas-table-scroll').scrollTop=0;try{localStorage.setItem('atlas-table-region-v1',region);}catch{}draw();};
   byId('atlas-region-retry').onclick=()=>{loadBoundaries();draw();};
   for(const th of panel.querySelectorAll('[data-sort]'))th.querySelector('button').onclick=()=>{

@@ -29,7 +29,7 @@ test('UKV domain clipping and explicit model selection cannot fall back to globa
   assert.equal(url.searchParams.get('hourly'),'pressure_msl');
   assert.equal(url.searchParams.get('cell_selection'),'nearest');
   assert.equal(url.searchParams.get('start_hour'),'2026-10-11T10:00');
-  assert.equal(url.searchParams.get('end_hour'),'2026-10-11T16:00');
+  assert.equal(url.searchParams.get('end_hour'),'2026-10-11T20:00');
 });
 
 test('only the current forecast hour is drawn; nulls and expired bundles stay missing',()=>{
@@ -41,7 +41,7 @@ test('only the current forecast hour is drawn; nulls and expired bundles stay mi
   assert.equal(core.frame(bundle,now+core.HOUR).points[1].value,1014);
   assert.equal(core.frame(bundle,now+2*core.HOUR),null);
   assert.equal(core.frame({...bundle,model:'ukmo_seamless'},now),null);
-  assert.equal(core.frame({...bundle,fetchedAt:now-4*core.HOUR},now),null);
+  assert.equal(core.frame({...bundle,fetchedAt:now-7*core.HOUR},now),null);
 });
 
 test('bad units, shifted coordinates and throttling abort the grid download',async()=>{

@@ -2,7 +2,7 @@
 globalThis.WeatherPressureLayer = {attach(map, selectedTime=()=>Date.now()) {
   const core=UKVPressure, $=id=>document.getElementById(id);
   const toggle=$('ukv-mslp'), status=$('ukv-status'), options=$('ukv-options'), caption=$('ukv-map-caption');
-  const cacheKey='ukv-pressure-grid-v2', settingsKey='ukv-pressure-settings-v1', attemptKey='ukv-pressure-attempt-v2';
+  const cacheKey='ukv-pressure-grid-v3', settingsKey='ukv-pressure-settings-v1', attemptKey='ukv-pressure-attempt-v3';
   const read=key=>{try{return JSON.parse(localStorage.getItem(key));}catch{return null;}};
   const write=(key,value)=>{try{localStorage.setItem(key,JSON.stringify(value));}catch{}};
   let bundle=read(cacheKey), pending=false, lines=[], lastFrame=null, retryAt=0, lastError='';
@@ -51,6 +51,7 @@ globalThis.WeatherPressureLayer = {attach(map, selectedTime=()=>Date.now()) {
     }
     caption.hidden=false;caption.textContent='UKV MSLP · '+stamp(frame.validTime*1000)+' · '+$('ukv-interval').value+' hPa isobars';
     status.textContent='Valid '+stamp(frame.validTime*1000)+'. Retrieved '+stamp(bundle.fetchedAt)+'.';
+    if(bundle.warning)status.textContent+=' Saved forecast; '+bundle.warning;
     return true;
   }
   async function update() {
@@ -58,19 +59,21 @@ globalThis.WeatherPressureLayer = {attach(map, selectedTime=()=>Date.now()) {
     const shared=read(cacheKey);if(shared?.fetchedAt>(bundle?.fetchedAt||0))bundle=shared;
     const shown=draw(), now=Date.now();
     if(pending){if(!shown)status.textContent='Loading UKV pressure for the selected hour…';return;}
-    if(shown&&now-bundle.fetchedAt<core.HOUR)return;
+    if(shown&&now-bundle.fetchedAt<3*core.HOUR)return;
     if(now<retryAt){status.textContent=(shown?status.textContent+' Saved forecast; update unavailable. ':'UKV layer unavailable. ')+lastError;return;}
     // Share a brief request lock/backoff across tabs, including full page reloads.
     const attempt=read(attemptKey);
     if(Number.isFinite(attempt)&&now-attempt<5*60000){status.textContent+=(shown?' ':'')+'Pressure update is waiting; it will retry automatically.';return;}
     write(attemptKey,now);pending=true;status.textContent=shown?'Updating UKV pressure… Saved forecast remains visible.':'Loading UKV pressure…';
     try {
-      const next=await core.load();
+      const response=await fetch('/api/ukv-pressure',{signal:AbortSignal.timeout(90000)});
+      const next=await response.json();
+      if(!response.ok){const error=Error(next.error||'The UKV pressure feed is temporarily unavailable.');error.retryAt=next.retryAt;throw error;}
       if(!core.frame(next))throw Error('No current UKV pressure forecast is available.');
-      bundle=next;write(cacheKey,bundle);retryAt=0;lastError='';
+      bundle=next;write(cacheKey,bundle);retryAt=next.retryAt||0;lastError=next.warning||'';
       if(toggle.checked&&!draw())status.textContent='UKV pressure is unavailable for the selected hour.';
     } catch(error) {
-      retryAt=Date.now()+5*60000;lastError=error.message;
+      retryAt=Number.isFinite(error.retryAt)?error.retryAt:Date.now()+15*60000;lastError=error.message;
       if(toggle.checked){const retained=draw();status.textContent=(retained?status.textContent+' Saved forecast; update unavailable. ': 'UKV layer unavailable. ')+error.message;}
     } finally {pending=false;}
   }

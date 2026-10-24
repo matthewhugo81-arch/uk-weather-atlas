@@ -22,7 +22,7 @@ globalThis.UKVPressure = (() => {
   function requestURL(points, validTime) {
     // Include one spare past hour when cached observations straddle an hour change.
     const start=new Date(validTime*1000-4*HOUR).toISOString().slice(0,16);
-    const end=new Date(validTime*1000+2*HOUR).toISOString().slice(0,16);
+    const end=new Date(validTime*1000+6*HOUR).toISOString().slice(0,16);
     const query=new URLSearchParams({latitude:points.map(p=>p.lat).join(','),longitude:points.map(p=>p.lon).join(','),models:MODEL,hourly:'pressure_msl',start_hour:start,end_hour:end,timeformat:'unixtime',cell_selection:'nearest'});
     return 'https://api.open-meteo.com/v1/forecast?'+query;
   }
@@ -34,7 +34,13 @@ globalThis.UKVPressure = (() => {
     for(let offset=0;offset<included.length;offset+=80) {
       const batch=included.slice(offset,offset+80);
       const response=await fetcher(requestURL(batch,validTime), {signal:AbortSignal.timeout(30000)});
-      if(!response.ok)throw Error(response.status===429?'The pressure feed is busy. Please try again later.':'The UKV pressure feed is temporarily unavailable.');
+      if(!response.ok){
+        let reason='';try{reason=(await response.json()).reason||'';}catch{}
+        const daily=response.status===429&&/daily/i.test(reason);
+        const error=Error(daily?'The UKV provider’s daily allowance is exhausted; retrying after midnight UTC.':response.status===429?'The pressure feed is busy. Please try again later.':'The UKV pressure feed is temporarily unavailable.');
+        error.retryAt=daily?Date.UTC(new Date(now).getUTCFullYear(),new Date(now).getUTCMonth(),new Date(now).getUTCDate()+1):now+15*60000;
+        throw error;
+      }
       const body=await response.json(), records=Array.isArray(body)?body:[body];
       if(records.length!==batch.length)throw Error('The UKV pressure grid is incomplete.');
       records.forEach((record,i)=>{
@@ -47,7 +53,7 @@ globalThis.UKVPressure = (() => {
     return {version:1,model:MODEL,fetchedAt:now,validTime,samples};
   }
   function frame(bundle, now=Date.now(), selectedTime=now) {
-    if(bundle?.version!==1||bundle.model!==MODEL||!Array.isArray(bundle.samples)||bundle.samples.length!==GRID.rows*GRID.columns||!Number.isFinite(bundle.fetchedAt)||bundle.fetchedAt>now+60000||now-bundle.fetchedAt>3*HOUR)return null;
+    if(bundle?.version!==1||bundle.model!==MODEL||!Array.isArray(bundle.samples)||bundle.samples.length!==GRID.rows*GRID.columns||!Number.isFinite(bundle.fetchedAt)||bundle.fetchedAt>now+60000||now-bundle.fetchedAt>6*HOUR)return null;
     // Cache freshness uses the real clock; the selected hour can be in the past.
     const validTime=Math.floor(selectedTime/HOUR)*3600;
     const points=bundle.samples.map(sample=>{

@@ -40,6 +40,12 @@ async function observationData(origin,ctx){
 }
 export default {async fetch(request,env,ctx={waitUntil:()=>{}}){
  const url=new URL(request.url);if(!['GET','HEAD'].includes(request.method))return new Response('Method not allowed',{status:405});
+ if(url.pathname==='/api/ukv-pressure'){
+  const headers={'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','Vary':'Origin'};
+  if(request.headers.get('Origin')==='https://matthewhugo81-arch.github.io')headers['Access-Control-Allow-Origin']='https://matthewhugo81-arch.github.io';
+  try{const data=await pressureData(url.origin);return new Response(request.method==='HEAD'?null:JSON.stringify(data),{headers});}
+  catch(e){return new Response(JSON.stringify({error:e.message,retryAt:e.retryAt}),{status:503,headers});}
+ }
  if(url.pathname==='/api/observations'){
   const headers={'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Vary':'Origin'};
   if(request.headers.get('Origin')==='https://matthewhugo81-arch.github.io')headers['Access-Control-Allow-Origin']='https://matthewhugo81-arch.github.io';

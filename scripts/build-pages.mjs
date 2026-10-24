@@ -9,5 +9,6 @@ for (const item of fs.readdirSync('dist', {withFileTypes: true})) {
 }
 const app = fs.readFileSync('dist/app.js', 'utf8').replace("fetch('/api/observations'", "fetch('https://uk-weather-atlas.matthugo81.chatgpt.site/api/observations'");
 fs.writeFileSync('docs/app.js', app);
+fs.writeFileSync('docs/ukv-pressure.js', fs.readFileSync('dist/ukv-pressure.js','utf8').replace("fetch('/api/ukv-pressure'", "fetch('https://uk-weather-atlas.matthugo81.chatgpt.site/api/ukv-pressure'"));
 fs.writeFileSync('docs/.nojekyll', '');
 console.log('GitHub Pages assets built in docs/');

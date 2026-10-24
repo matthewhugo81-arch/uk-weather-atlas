@@ -57,5 +57,5 @@ test('UKV selects the historical valid hour without treating retrieval time as f
   assert.equal(frame.points[0].value,1012-back*4);
  }
  assert.equal(core.frame(bundle,realNow,realNow-4*core.HOUR),null);
- assert.equal(core.frame({...bundle,fetchedAt:realNow-4*core.HOUR},realNow,realNow-core.HOUR),null);
+ assert.equal(core.frame({...bundle,fetchedAt:realNow-7*core.HOUR},realNow,realNow-core.HOUR),null);
 });
